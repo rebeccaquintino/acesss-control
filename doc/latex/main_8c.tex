@@ -1,0 +1,878 @@
+\doxysection{main.\+c File Reference}
+\hypertarget{main_8c}{}\label{main_8c}\index{main.c@{main.c}}
+
+
+Sistema de leitor de Smart\+Card com comunicação Wi-\/\+Fi e LCD.  
+
+
+{\ttfamily \#include $<$stdio.\+h$>$}\newline
+{\ttfamily \#include $<$string.\+h$>$}\newline
+{\ttfamily \#include $<$stdlib.\+h$>$}\newline
+{\ttfamily \#include $<$time.\+h$>$}\newline
+{\ttfamily \#include $<$sys/time.\+h$>$}\newline
+{\ttfamily \#include "{}driver/i2c\+\_\+master.\+h"{}}\newline
+{\ttfamily \#include "{}driver/gpio.\+h"{}}\newline
+{\ttfamily \#include "{}esp\+\_\+wifi.\+h"{}}\newline
+{\ttfamily \#include "{}esp\+\_\+event.\+h"{}}\newline
+{\ttfamily \#include "{}esp\+\_\+log.\+h"{}}\newline
+{\ttfamily \#include "{}esp\+\_\+sntp.\+h"{}}\newline
+{\ttfamily \#include "{}nvs\+\_\+flash.\+h"{}}\newline
+{\ttfamily \#include "{}esp\+\_\+http\+\_\+client.\+h"{}}\newline
+{\ttfamily \#include "{}freertos/\+Free\+RTOS.\+h"{}}\newline
+{\ttfamily \#include "{}freertos/task.\+h"{}}\newline
+{\ttfamily \#include "{}freertos/queue.\+h"{}}\newline
+{\ttfamily \#include "{}freertos/event\+\_\+groups.\+h"{}}\newline
+{\ttfamily \#include "{}display\+\_\+lcd.\+h"{}}\newline
+\doxysubsubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{main_8c_a52136a35c8a0e1fb51bb426c7c81afd0}{BFC\+\_\+\+PIN}}~2
+\begin{DoxyCompactList}\small\item\em \texorpdfstring{$<$}{<} Cabeçalho para funções de controle do display LCD \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a0e4e08bab2fb484136d18b067bef372c}\label{main_8c_a0e4e08bab2fb484136d18b067bef372c} 
+\#define {\bfseries I2\+C\+\_\+\+SCL\+\_\+\+PIN}~3
+\begin{DoxyCompactList}\small\item\em Pino SCL (Serial Clock) do barramento I2C. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a2cade698267beb86ccaa38c14d35ab0f}\label{main_8c_a2cade698267beb86ccaa38c14d35ab0f} 
+\#define {\bfseries I2\+C\+\_\+\+SDA\+\_\+\+PIN}~4
+\begin{DoxyCompactList}\small\item\em Pino SDA (Serial Data) do barramento I2C. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_aaa6cf79c8db30749fdc1022ee5f673e5}\label{main_8c_aaa6cf79c8db30749fdc1022ee5f673e5} 
+\#define {\bfseries EEPROM\+\_\+\+ADDRESS}~0x50
+\begin{DoxyCompactList}\small\item\em Endereço I2C do dispositivo EEPROM (Smart\+Card) \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_ad9f5ab5ce9186dd30e74331b822a3317}\label{main_8c_ad9f5ab5ce9186dd30e74331b822a3317} 
+\#define {\bfseries DEBOUNCE\+\_\+\+DELAY\+\_\+\+MS}~100
+\begin{DoxyCompactList}\small\item\em Tempo de debounce do botão em milissegundos, para evitar múltiplas leituras por um único clique. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a30bc7bae56e61d3bb82162ed9c524f29}\label{main_8c_a30bc7bae56e61d3bb82162ed9c524f29} 
+\#define {\bfseries LED\+\_\+\+VERMELHO\+\_\+\+PIN}~9
+\begin{DoxyCompactList}\small\item\em Pino do LED vermelho. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_af60f58e726a04e968f18d6d333175a85}\label{main_8c_af60f58e726a04e968f18d6d333175a85} 
+\#define {\bfseries LED\+\_\+\+VERDE\+\_\+\+PIN}~0
+\begin{DoxyCompactList}\small\item\em Pino do LED verde. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a78620e5064b532f529e73e0cba2e195a}\label{main_8c_a78620e5064b532f529e73e0cba2e195a} 
+\#define {\bfseries SERVER\+\_\+\+URL}~"{}http\+://eel-\/7030-\/server.\+azurewebsites.\+net/"{}
+\begin{DoxyCompactList}\small\item\em URL do servidor para comunicação HTTP. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a768c6ef06a78804a1cbc03f586b401ac}\label{main_8c_a768c6ef06a78804a1cbc03f586b401ac} 
+\#define {\bfseries AUTH\+\_\+\+TOKEN}~"{}Q1w2\+E3r4\+T5y6\+U7i8"{}
+\begin{DoxyCompactList}\small\item\em Token de autenticação para as requisições ao servidor. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a920646065c13a10ddb5770d631c7e1c4}\label{main_8c_a920646065c13a10ddb5770d631c7e1c4} 
+\#define {\bfseries ROOM\+\_\+\+NUMBER}~"{}101"{}
+\begin{DoxyCompactList}\small\item\em Número do quarto ao qual o dispositivo ESP32-\/\+C3 está associado. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a5436810301368a719ed272d3f5f1d3a6}\label{main_8c_a5436810301368a719ed272d3f5f1d3a6} 
+\#define {\bfseries TAG\+\_\+\+HTTP}~"{}HTTP\+\_\+\+CLIENT"{}
+\begin{DoxyCompactList}\small\item\em Tag para logs relacionados ao cliente HTTP. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_adf7e9346d49b1d97631e0258be811c12}\label{main_8c_adf7e9346d49b1d97631e0258be811c12} 
+\#define {\bfseries TAG\+\_\+\+SNTP}~"{}SNTP"{}
+\begin{DoxyCompactList}\small\item\em Tag para logs relacionados ao SNTP. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a0b7fc93caae54cdd83e612273a26aabe}\label{main_8c_a0b7fc93caae54cdd83e612273a26aabe} 
+\#define {\bfseries TAG\+\_\+\+WIFI}~"{}Wi-\/Fi STA"{}
+\begin{DoxyCompactList}\small\item\em Tag para logs relacionados ao Wi-\/\+Fi (modo estação) \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a24f416177d0421fce89cd9cba660b3b5}\label{main_8c_a24f416177d0421fce89cd9cba660b3b5} 
+\#define {\bfseries TAG\+\_\+\+MAIN}~"{}Smart\+Card Reader"{}
+\begin{DoxyCompactList}\small\item\em Tag para logs principais do sistema leitor de Smart\+Card. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a5b23918f3bed76dd03d7a1b1078547ef}\label{main_8c_a5b23918f3bed76dd03d7a1b1078547ef} 
+\#define {\bfseries TAG\+\_\+\+LCD}~"{}LCD"{}
+\begin{DoxyCompactList}\small\item\em Tag para logs do display LCD. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a324488a2369a6a4f2a149dad63f48eea}\label{main_8c_a324488a2369a6a4f2a149dad63f48eea} 
+\#define {\bfseries TAG\+\_\+\+LED\+\_\+\+VERDE}~"{}LED\+\_\+\+VERDE"{}
+\begin{DoxyCompactList}\small\item\em Tag para logs do LED verde. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a586542b79d00e4db7e1d5a667ae83a2b}\label{main_8c_a586542b79d00e4db7e1d5a667ae83a2b} 
+\#define {\bfseries WIFI\+\_\+\+SSID}~"{}Wokwi-\/GUEST"{}
+\begin{DoxyCompactList}\small\item\em SSID (nome) da rede Wi-\/\+Fi a ser conectada. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_a3c95561b03d0fcf9048b231ae2ba90fb}\label{main_8c_a3c95561b03d0fcf9048b231ae2ba90fb} 
+\#define {\bfseries WIFI\+\_\+\+PASS}~"{}"{}
+\begin{DoxyCompactList}\small\item\em Senha da rede Wi-\/\+Fi (vazia para redes abertas) \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_ad552e7688532cbbecd3967538ced06ac}\label{main_8c_ad552e7688532cbbecd3967538ced06ac} 
+\#define {\bfseries WIFI\+\_\+\+CONNECTED\+\_\+\+BIT}~BIT0
+\begin{DoxyCompactList}\small\item\em Bit que será setado no grupo de eventos quando o Wi-\/\+Fi estiver conectado. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \mbox{\hyperlink{main_8c_aeaac97ef8a153a4e1abc636f535656eb}{system\+\_\+state\+\_\+t}} \{ \newline
+\mbox{\hyperlink{main_8c_aeaac97ef8a153a4e1abc636f535656eba827f890639f04a2feb6de65b891c786f}{STATE\+\_\+\+CONNECTING\+\_\+\+WIFI}}
+, \mbox{\hyperlink{main_8c_aeaac97ef8a153a4e1abc636f535656eba4607b7c31126a0e73a1b880f1c191843}{STATE\+\_\+\+WAITING\+\_\+\+CARD}}
+, \mbox{\hyperlink{main_8c_aeaac97ef8a153a4e1abc636f535656ebac554402b56a9980c565491060f4f3600}{STATE\+\_\+\+VERIFYING\+\_\+\+CARD}}
+, \mbox{\hyperlink{main_8c_aeaac97ef8a153a4e1abc636f535656eba29cc72d2aba291ade8147bc46be1f9fb}{STATE\+\_\+\+ACCESS\+\_\+\+GRANTED}}
+, \newline
+\mbox{\hyperlink{main_8c_aeaac97ef8a153a4e1abc636f535656ebaf2b7b4247821ed96c2229b60be731e96}{STATE\+\_\+\+ACCESS\+\_\+\+DENIED}}
+ \}
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{main_8c_a2b99310dc0acb6900e268b58dc4a8c61}{configura\+\_\+barramento\+\_\+mestre}} (i2c\+\_\+master\+\_\+bus\+\_\+handle\+\_\+t \texorpdfstring{$\ast$}{*}ptr\+\_\+bus\+\_\+handle)
+\begin{DoxyCompactList}\small\item\em Configura o barramento I2C mestre. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_ad956c13cb20c57bcc81cd35ca18024c3}{configura\+\_\+dispositivo\+\_\+smartcard}} (i2c\+\_\+master\+\_\+bus\+\_\+handle\+\_\+t \mbox{\hyperlink{main_8c_a457e9b0ccf6478fd7e45c0463abbd533}{bus\+\_\+handle}}, i2c\+\_\+master\+\_\+dev\+\_\+handle\+\_\+t \texorpdfstring{$\ast$}{*}ptr\+\_\+dev\+\_\+handle)
+\begin{DoxyCompactList}\small\item\em Configura o dispositivo Smart\+Card no barramento I2C. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_a872cef17d347f3daa32820b51e772780}{ler\+\_\+dados\+\_\+cartao}} (i2c\+\_\+master\+\_\+dev\+\_\+handle\+\_\+t \mbox{\hyperlink{main_8c_ac14aeb2bdb9bf34d0e088ec18224cdf6}{dev\+\_\+handle}}, uint8\+\_\+t endereco\+\_\+inicial, uint8\+\_\+t \texorpdfstring{$\ast$}{*}buffer, size\+\_\+t tamanho)
+\begin{DoxyCompactList}\small\item\em Lê dados do cartão Smart\+Card. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_a84805d27b13fe1254389dfb85873b509}{escrever\+\_\+timestamp\+\_\+cartao}} (i2c\+\_\+master\+\_\+dev\+\_\+handle\+\_\+t \mbox{\hyperlink{main_8c_ac14aeb2bdb9bf34d0e088ec18224cdf6}{dev\+\_\+handle}}, uint64\+\_\+t timestamp)
+\begin{DoxyCompactList}\small\item\em Escreve timestamp no cartão Smart\+Card. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_ae2bbb38f4d8e59e27c0f8ed240756aa5}{gpio\+\_\+isr\+\_\+handler}} (void \texorpdfstring{$\ast$}{*}arg)
+\begin{DoxyCompactList}\small\item\em Handler de interrupção GPIO. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_a2ffbeae6c737f0ed50e4614eec56ef76}{init\+\_\+gpio}} ()
+\begin{DoxyCompactList}\small\item\em Inicializa os GPIOs. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_aa75092f37ad9c51f5f09d772b01dc397}{cartao\+\_\+task}} (void \texorpdfstring{$\ast$}{*}arg)
+\begin{DoxyCompactList}\small\item\em Tarefa para processamento do cartão. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_a6a97e608f0d3b7a774767866989847f8}{sntp\+\_\+sync\+\_\+task}} (void \texorpdfstring{$\ast$}{*}pv\+Parameter)
+\begin{DoxyCompactList}\small\item\em Tarefa para sincronização SNTP. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_a6afcde597267f66ebbfaecdf496439f4}{leds\+\_\+status\+\_\+task}} (void \texorpdfstring{$\ast$}{*}pv\+Parameter)
+\begin{DoxyCompactList}\small\item\em Tarefa para gerenciamento dos LEDs e display LCD. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_a4f7a4d3a86c7aed99f8ba15bc9cb89c2}{nvs\+\_\+init}} ()
+\begin{DoxyCompactList}\small\item\em Inicializa o NVS (Non-\/\+Volatile Storage) \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_a018ec2cb0b79bf902943c36b33f8486c}{event\+\_\+loop\+\_\+init}} ()
+\begin{DoxyCompactList}\small\item\em Inicializa o loop de eventos. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_af67410a15ecc24ecef0e5abce0c5b30c}{wifi\+\_\+init}} ()
+\begin{DoxyCompactList}\small\item\em Inicializa a conexão Wi-\/\+Fi. \end{DoxyCompactList}\item 
+esp\+\_\+err\+\_\+t \mbox{\hyperlink{main_8c_a78056c469c9710d2afff7ad0d49d953b}{http\+\_\+post\+\_\+request\+\_\+event\+\_\+handler}} (esp\+\_\+http\+\_\+client\+\_\+event\+\_\+t \texorpdfstring{$\ast$}{*}evt)
+\begin{DoxyCompactList}\small\item\em Handler de eventos HTTP. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_a9ae3e43ccaa4464b7d4ba233cf99359a}{sntp\+\_\+callback\+\_\+sync\+\_\+time}} (struct timeval \texorpdfstring{$\ast$}{*}tv)
+\begin{DoxyCompactList}\small\item\em Callback de sincronização de tempo SNTP. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_a697dbb6c25910ad04e764061267a0e8a}{update\+\_\+lcd\+\_\+display}} (\mbox{\hyperlink{main_8c_aeaac97ef8a153a4e1abc636f535656eb}{system\+\_\+state\+\_\+t}} state)
+\begin{DoxyCompactList}\small\item\em Atualiza o display LCD conforme o estado do sistema. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_a630544a7f0a2cc40d8a7fefab7e2fe70}{app\+\_\+main}} (void)
+\begin{DoxyCompactList}\small\item\em Função principal do sistema, ponto de entrada do programa. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{main_8c_afd09153a6048e5ac7c4bf1655c8c42b0}{verify\+\_\+card\+\_\+http\+\_\+post}} (char \texorpdfstring{$\ast$}{*}card\+\_\+id\+\_\+str)
+\begin{DoxyCompactList}\small\item\em Realiza requisição HTTP POST para verificar o cartão. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{main_8c_a457e9b0ccf6478fd7e45c0463abbd533}\label{main_8c_a457e9b0ccf6478fd7e45c0463abbd533} 
+i2c\+\_\+master\+\_\+bus\+\_\+handle\+\_\+t {\bfseries bus\+\_\+handle}
+\begin{DoxyCompactList}\small\item\em Handle para o barramento I2C mestre. \end{DoxyCompactList}\item 
+\Hypertarget{main_8c_ac14aeb2bdb9bf34d0e088ec18224cdf6}\label{main_8c_ac14aeb2bdb9bf34d0e088ec18224cdf6} 
+i2c\+\_\+master\+\_\+dev\+\_\+handle\+\_\+t {\bfseries dev\+\_\+handle}
+\begin{DoxyCompactList}\small\item\em Handle para o dispositivo I2C (EEPROM do Smart\+Card) \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Sistema de leitor de Smart\+Card com comunicação Wi-\/\+Fi e LCD. 
+
+\begin{DoxyAuthor}{Author}
+Rebecca Quintino Do Ó 
+\end{DoxyAuthor}
+
+
+\label{doc-define-members}
+\Hypertarget{main_8c_doc-define-members}
+\doxysubsection{Macro Definition Documentation}
+\Hypertarget{main_8c_a52136a35c8a0e1fb51bb426c7c81afd0}\index{main.c@{main.c}!BFC\_PIN@{BFC\_PIN}}
+\index{BFC\_PIN@{BFC\_PIN}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{BFC\_PIN}{BFC\_PIN}}
+{\footnotesize\ttfamily \label{main_8c_a52136a35c8a0e1fb51bb426c7c81afd0} 
+\#define BFC\+\_\+\+PIN~2}
+
+
+
+\texorpdfstring{$<$}{<} Cabeçalho para funções de controle do display LCD 
+
+\texorpdfstring{$<$}{<} Inclui funções padrão de entrada e saída Inclui funções para manipulação de strings Inclui funções de uso geral, como alocação de memória e conversão de tipos Para manipulação de tempo (timestamp) Para a função gettimeofday, usada para obter o tempo atual com alta precisão \texorpdfstring{$<$}{<} Driver para comunicação I2C mestre Driver para controle de pinos GPIO API do ESP-\/\+IDF para controle de Wi-\/\+Fi API do ESP-\/\+IDF para gerenciamento de eventos API do ESP-\/\+IDF para logging (mensagens de depuração) API do ESP-\/\+IDF para protocolo SNTP (sincronização de tempo de rede) API do ESP-\/\+IDF para NVS (Non-\/\+Volatile Storage), usada para armazenar dados de forma persistente API do ESP-\/\+IDF para cliente HTTP Sistema operacional em tempo real Free\+RTOS Funções para gerenciamento de tarefas no Free\+RTOS Funções para gerenciamento de filas no Free\+RTOS (comunicação entre tarefas) Funções para gerenciamento de grupos de eventos no Free\+RTOS (sinalização entre tarefas) Pino do botão de fim de curso 
+
+\label{doc-enum-members}
+\Hypertarget{main_8c_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{main_8c_aeaac97ef8a153a4e1abc636f535656eb}\index{main.c@{main.c}!system\_state\_t@{system\_state\_t}}
+\index{system\_state\_t@{system\_state\_t}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{system\_state\_t}{system\_state\_t}}
+{\footnotesize\ttfamily \label{main_8c_aeaac97ef8a153a4e1abc636f535656eb} 
+enum \mbox{\hyperlink{main_8c_aeaac97ef8a153a4e1abc636f535656eb}{system\+\_\+state\+\_\+t}}}
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_CONNECTING\_WIFI@{STATE\_CONNECTING\_WIFI}!main.c@{main.c}}\index{main.c@{main.c}!STATE\_CONNECTING\_WIFI@{STATE\_CONNECTING\_WIFI}}}\Hypertarget{main_8c_aeaac97ef8a153a4e1abc636f535656eba827f890639f04a2feb6de65b891c786f}\label{main_8c_aeaac97ef8a153a4e1abc636f535656eba827f890639f04a2feb6de65b891c786f} 
+STATE\+\_\+\+CONNECTING\+\_\+\+WIFI&Estado\+: Conectando ao Wi-\/\+Fi. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_WAITING\_CARD@{STATE\_WAITING\_CARD}!main.c@{main.c}}\index{main.c@{main.c}!STATE\_WAITING\_CARD@{STATE\_WAITING\_CARD}}}\Hypertarget{main_8c_aeaac97ef8a153a4e1abc636f535656eba4607b7c31126a0e73a1b880f1c191843}\label{main_8c_aeaac97ef8a153a4e1abc636f535656eba4607b7c31126a0e73a1b880f1c191843} 
+STATE\+\_\+\+WAITING\+\_\+\+CARD&Estado\+: Aguardando inserção do cartão. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_VERIFYING\_CARD@{STATE\_VERIFYING\_CARD}!main.c@{main.c}}\index{main.c@{main.c}!STATE\_VERIFYING\_CARD@{STATE\_VERIFYING\_CARD}}}\Hypertarget{main_8c_aeaac97ef8a153a4e1abc636f535656ebac554402b56a9980c565491060f4f3600}\label{main_8c_aeaac97ef8a153a4e1abc636f535656ebac554402b56a9980c565491060f4f3600} 
+STATE\+\_\+\+VERIFYING\+\_\+\+CARD&Estado\+: Verificando o cartão. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_ACCESS\_GRANTED@{STATE\_ACCESS\_GRANTED}!main.c@{main.c}}\index{main.c@{main.c}!STATE\_ACCESS\_GRANTED@{STATE\_ACCESS\_GRANTED}}}\Hypertarget{main_8c_aeaac97ef8a153a4e1abc636f535656eba29cc72d2aba291ade8147bc46be1f9fb}\label{main_8c_aeaac97ef8a153a4e1abc636f535656eba29cc72d2aba291ade8147bc46be1f9fb} 
+STATE\+\_\+\+ACCESS\+\_\+\+GRANTED&Estado\+: Acesso liberado. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_ACCESS\_DENIED@{STATE\_ACCESS\_DENIED}!main.c@{main.c}}\index{main.c@{main.c}!STATE\_ACCESS\_DENIED@{STATE\_ACCESS\_DENIED}}}\Hypertarget{main_8c_aeaac97ef8a153a4e1abc636f535656ebaf2b7b4247821ed96c2229b60be731e96}\label{main_8c_aeaac97ef8a153a4e1abc636f535656ebaf2b7b4247821ed96c2229b60be731e96} 
+STATE\+\_\+\+ACCESS\+\_\+\+DENIED&Estado\+: Acesso negado. \\
+\hline
+
+\end{DoxyEnumFields}
+
+
+\label{doc-func-members}
+\Hypertarget{main_8c_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{main_8c_a630544a7f0a2cc40d8a7fefab7e2fe70}\index{main.c@{main.c}!app\_main@{app\_main}}
+\index{app\_main@{app\_main}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{app\_main()}{app\_main()}}
+{\footnotesize\ttfamily \label{main_8c_a630544a7f0a2cc40d8a7fefab7e2fe70} 
+void app\+\_\+main (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Função principal do sistema, ponto de entrada do programa. 
+
+\texorpdfstring{$<$}{<} Criação do Grupo de Eventos Wi-\/\+Fi para gerenciar o estado da conexão
+
+\texorpdfstring{$<$}{<} Cria fila para eventos do GPIO (BFC), com capacidade para 10 itens
+
+\texorpdfstring{$<$}{<} Cria fila para estados do sistema, com capacidade para 5 estados
+
+\texorpdfstring{$<$}{<} Define o estado inicial como "{}\+Conectando ao Wi-\/\+Fi"{}
+
+\texorpdfstring{$<$}{<} Envia o estado inicial para a fila de estados do sistema (bloqueia indefinidamente se a fila estiver cheia)
+
+\texorpdfstring{$<$}{<} Inicializa o NVS (Non-\/\+Volatile Storage) para armazenamento persistente
+
+\texorpdfstring{$<$}{<} Inicializa o loop de eventos do ESP-\/\+IDF para eventos de rede
+
+\texorpdfstring{$<$}{<} Inicializa e tenta conectar ao Wi-\/\+Fi
+
+\texorpdfstring{$<$}{<} Inicializa o barramento I2C para comunicação com Smart\+Card e LCD
+
+\texorpdfstring{$<$}{<} Configura o dispositivo Smart\+Card no barramento I2C
+
+\texorpdfstring{$<$}{<} Configura o display LCD via I2C
+
+\texorpdfstring{$<$}{<} Tenta configurar o display LCD
+
+\texorpdfstring{$<$}{<} Inicializa os pinos GPIO e configura a interrupção para o botão de fim de curso (BFC)
+
+\texorpdfstring{$<$}{<} Cria tarefas Free\+RTOS
+
+\texorpdfstring{$<$}{<} Cria a tarefa para processamento do cartão (stack de 4KB, prioridade 10)
+
+\texorpdfstring{$<$}{<} Cria a tarefa para sincronização SNTP (stack de 4KB, prioridade 5)
+
+\texorpdfstring{$<$}{<} Cria a tarefa para gerenciamento dos LEDs e LCD (stack de 2KB, prioridade 5)\Hypertarget{main_8c_aa75092f37ad9c51f5f09d772b01dc397}\index{main.c@{main.c}!cartao\_task@{cartao\_task}}
+\index{cartao\_task@{cartao\_task}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{cartao\_task()}{cartao\_task()}}
+{\footnotesize\ttfamily \label{main_8c_aa75092f37ad9c51f5f09d772b01dc397} 
+void cartao\+\_\+task (\begin{DoxyParamCaption}\item[{void \texorpdfstring{$\ast$}{*}}]{arg}{}\end{DoxyParamCaption})}
+
+
+
+Tarefa para processamento do cartão. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em arg} & Argumento da tarefa (não utilizado) \\
+\hline
+\end{DoxyParams}
+\texorpdfstring{$<$}{<} Variável para armazenar o número do pino GPIO recebido da fila
+
+\texorpdfstring{$<$}{<} Buffer para a primeira parte do ID do cartão
+
+\texorpdfstring{$<$}{<} Buffer para a segunda parte do ID do cartão
+
+\texorpdfstring{$<$}{<} String para armazenar o ID completo do cartão (16 caracteres + null terminator)
+
+\texorpdfstring{$<$}{<} Aguarda indefinidamente por um evento na fila do GPIO
+
+\texorpdfstring{$<$}{<} Atraso para debounce do botão
+
+\texorpdfstring{$<$}{<} Verifica se o botão ainda está ativado após o debounce
+
+\texorpdfstring{$<$}{<} Define o estado como "{}\+Verificando Cartão"{}
+
+\texorpdfstring{$<$}{<} Envia o estado para a fila do sistema (não bloqueante)
+
+\texorpdfstring{$<$}{<} Lê a primeira parte do ID do cartão (endereço 0x00)
+
+\texorpdfstring{$<$}{<} Lê a segunda parte do ID do cartão (endereço 0x08)
+
+\texorpdfstring{$<$}{<} Copia a primeira parte do ID para a string
+
+\texorpdfstring{$<$}{<} Copia a segunda parte do ID para a string
+
+\texorpdfstring{$<$}{<} Adiciona o terminador nulo à string
+
+\texorpdfstring{$<$}{<} Verifica se o tempo foi sincronizado via SNTP
+
+\texorpdfstring{$<$}{<} Obtém o tempo atual do sistema
+
+\texorpdfstring{$<$}{<} Converte o tempo para um timestamp de 64 bits (segundos)
+
+\texorpdfstring{$<$}{<} Escreve o timestamp no cartão Smart\+Card
+
+\texorpdfstring{$<$}{<} Converte o timestamp para uma estrutura de tempo legível
+
+\texorpdfstring{$<$}{<} Formata o tempo para uma string legível
+
+\texorpdfstring{$<$}{<} Aguarda indefinidamente até que o Wi-\/\+Fi esteja conectado
+
+\texorpdfstring{$<$}{<} Formata os dados JSON para a requisição POST
+
+\texorpdfstring{$<$}{<} URL do servidor
+
+\texorpdfstring{$<$}{<} Método HTTP (POST)
+
+\texorpdfstring{$<$}{<} Handler de eventos HTTP para processar a resposta
+
+\texorpdfstring{$<$}{<} Tempo limite da requisição em milissegundos
+
+\texorpdfstring{$<$}{<} User-\/\+Agent para a requisição
+
+\texorpdfstring{$<$}{<} Inicializa o cliente HTTP
+
+\texorpdfstring{$<$}{<} Define o cabeçalho Content-\/\+Type como JSON
+
+\texorpdfstring{$<$}{<} Define os dados a serem enviados no corpo da requisição POST
+
+\texorpdfstring{$<$}{<} Realiza a requisição HTTP
+
+\texorpdfstring{$<$}{<} Obtém o código de status HTTP da resposta
+
+\texorpdfstring{$<$}{<} Define o estado como "{}\+Acesso Liberado"{}
+
+\texorpdfstring{$<$}{<} Envia o estado para a fila
+
+\texorpdfstring{$<$}{<} Define o estado como "{}\+Acesso Negado"{}
+
+\texorpdfstring{$<$}{<} Envia o estado para a fila
+
+\texorpdfstring{$<$}{<} Define o estado como "{}\+Acesso Negado"{}
+
+\texorpdfstring{$<$}{<} Envia o estado para a fila
+
+\texorpdfstring{$<$}{<} Limpa os recursos do cliente HTTP
+
+\texorpdfstring{$<$}{<} Reabilita a interrupção para o pino do BFC
+
+\texorpdfstring{$<$}{<} Define o estado como "{}\+Aguardando Cartão"{}
+
+\texorpdfstring{$<$}{<} Envia o estado para a fila\Hypertarget{main_8c_a2b99310dc0acb6900e268b58dc4a8c61}\index{main.c@{main.c}!configura\_barramento\_mestre@{configura\_barramento\_mestre}}
+\index{configura\_barramento\_mestre@{configura\_barramento\_mestre}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{configura\_barramento\_mestre()}{configura\_barramento\_mestre()}}
+{\footnotesize\ttfamily \label{main_8c_a2b99310dc0acb6900e268b58dc4a8c61} 
+void configura\+\_\+barramento\+\_\+mestre (\begin{DoxyParamCaption}\item[{i2c\+\_\+master\+\_\+bus\+\_\+handle\+\_\+t \texorpdfstring{$\ast$}{*}}]{ptr\+\_\+bus\+\_\+handle}{}\end{DoxyParamCaption})}
+
+
+
+Configura o barramento I2C mestre. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em ptr\+\_\+bus\+\_\+handle} & Ponteiro para o handle do barramento I2C \\
+\hline
+\end{DoxyParams}
+\texorpdfstring{$<$}{<} Fonte do clock do I2C (padrão)
+
+\texorpdfstring{$<$}{<} Porta I2C a ser usada (I2\+C\+\_\+\+NUM\+\_\+0)
+
+\texorpdfstring{$<$}{<} Pino GPIO para SCL
+
+\texorpdfstring{$<$}{<} Pino GPIO para SDA
+
+\texorpdfstring{$<$}{<} Número de pulsos de glitch para ignorar
+
+\texorpdfstring{$<$}{<} Habilita resistores de pull-\/up internos
+
+\texorpdfstring{$<$}{<} Cria um novo barramento I2C mestre\Hypertarget{main_8c_ad956c13cb20c57bcc81cd35ca18024c3}\index{main.c@{main.c}!configura\_dispositivo\_smartcard@{configura\_dispositivo\_smartcard}}
+\index{configura\_dispositivo\_smartcard@{configura\_dispositivo\_smartcard}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{configura\_dispositivo\_smartcard()}{configura\_dispositivo\_smartcard()}}
+{\footnotesize\ttfamily \label{main_8c_ad956c13cb20c57bcc81cd35ca18024c3} 
+void configura\+\_\+dispositivo\+\_\+smartcard (\begin{DoxyParamCaption}\item[{i2c\+\_\+master\+\_\+bus\+\_\+handle\+\_\+t}]{bus\+\_\+handle}{, }\item[{i2c\+\_\+master\+\_\+dev\+\_\+handle\+\_\+t \texorpdfstring{$\ast$}{*}}]{ptr\+\_\+dev\+\_\+handle}{}\end{DoxyParamCaption})}
+
+
+
+Configura o dispositivo Smart\+Card no barramento I2C. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em bus\+\_\+handle} & Handle do barramento I2C \\
+\hline
+{\em ptr\+\_\+dev\+\_\+handle} & Ponteiro para o handle do dispositivo \\
+\hline
+\end{DoxyParams}
+\texorpdfstring{$<$}{<} Endereço do dispositivo tem 7 bits
+
+\texorpdfstring{$<$}{<} Endereço I2C da EEPROM do Smart\+Card
+
+\texorpdfstring{$<$}{<} Velocidade do clock SCL em Hz (100 KHz)
+
+\texorpdfstring{$<$}{<} Adiciona o dispositivo Smart\+Card ao barramento I2C\Hypertarget{main_8c_a84805d27b13fe1254389dfb85873b509}\index{main.c@{main.c}!escrever\_timestamp\_cartao@{escrever\_timestamp\_cartao}}
+\index{escrever\_timestamp\_cartao@{escrever\_timestamp\_cartao}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{escrever\_timestamp\_cartao()}{escrever\_timestamp\_cartao()}}
+{\footnotesize\ttfamily \label{main_8c_a84805d27b13fe1254389dfb85873b509} 
+void escrever\+\_\+timestamp\+\_\+cartao (\begin{DoxyParamCaption}\item[{i2c\+\_\+master\+\_\+dev\+\_\+handle\+\_\+t}]{dev\+\_\+handle}{, }\item[{uint64\+\_\+t}]{timestamp}{}\end{DoxyParamCaption})}
+
+
+
+Escreve timestamp no cartão Smart\+Card. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em dev\+\_\+handle} & Handle do dispositivo I2C \\
+\hline
+{\em timestamp} & Timestamp a ser escrito \\
+\hline
+\end{DoxyParams}
+\texorpdfstring{$<$}{<} Buffer para escrita, 1 byte para endereço + 8 bytes para timestamp
+
+\texorpdfstring{$<$}{<} Endereço inicial na EEPROM para escrita do timestamp
+
+\texorpdfstring{$<$}{<} Buffer para leitura de verificação após a escrita
+
+\texorpdfstring{$<$}{<} Copia o timestamp para o buffer de escrita, após o byte de endereço
+
+\texorpdfstring{$<$}{<} Realiza a transmissão dos dados (endereço + timestamp) via I2C
+
+\texorpdfstring{$<$}{<} Lê os dados recém-\/escritos para verificação
+
+\texorpdfstring{$<$}{<} Copia os dados lidos de volta para uma variável uint64\+\_\+t
+
+\texorpdfstring{$<$}{<} Converte o timestamp para time\+\_\+t
+
+\texorpdfstring{$<$}{<} Converte o timestamp para uma estrutura de tempo legível
+
+\texorpdfstring{$<$}{<} Formata o tempo para uma string legível
+
+\texorpdfstring{$<$}{<} Pequeno atraso para estabilização da EEPROM\Hypertarget{main_8c_a018ec2cb0b79bf902943c36b33f8486c}\index{main.c@{main.c}!event\_loop\_init@{event\_loop\_init}}
+\index{event\_loop\_init@{event\_loop\_init}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{event\_loop\_init()}{event\_loop\_init()}}
+{\footnotesize\ttfamily \label{main_8c_a018ec2cb0b79bf902943c36b33f8486c} 
+void event\+\_\+loop\+\_\+init (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Inicializa o loop de eventos. 
+
+\texorpdfstring{$<$}{<} Inicializa a camada de interface de rede (netif)
+
+\texorpdfstring{$<$}{<} Cria o loop de eventos padrão do ESP-\/\+IDF
+
+\texorpdfstring{$<$}{<} Cria a interface de rede padrão para o modo Wi-\/\+Fi estação (STA)
+
+\texorpdfstring{$<$}{<} Registra o handler para todos os eventos Wi-\/\+Fi
+
+\texorpdfstring{$<$}{<} Registra o handler para o evento de IP obtido no modo STA\Hypertarget{main_8c_ae2bbb38f4d8e59e27c0f8ed240756aa5}\index{main.c@{main.c}!gpio\_isr\_handler@{gpio\_isr\_handler}}
+\index{gpio\_isr\_handler@{gpio\_isr\_handler}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{gpio\_isr\_handler()}{gpio\_isr\_handler()}}
+{\footnotesize\ttfamily \label{main_8c_ae2bbb38f4d8e59e27c0f8ed240756aa5} 
+void gpio\+\_\+isr\+\_\+handler (\begin{DoxyParamCaption}\item[{void \texorpdfstring{$\ast$}{*}}]{arg}{}\end{DoxyParamCaption})}
+
+
+
+Handler de interrupção GPIO. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em arg} & Argumento passado para o handler (geralmente o número do pino que gerou a interrupção)\\
+\hline
+{\em arg} & Argumento passado para o handler \\
+\hline
+\end{DoxyParams}
+\texorpdfstring{$<$}{<} Obtém o número do pino GPIO que gerou a interrupção
+
+\texorpdfstring{$<$}{<} Desabilita temporariamente a interrupção para o pino para evitar múltiplos eventos
+
+\texorpdfstring{$<$}{<} Variável para verificar se uma tarefa de maior prioridade foi "{}acordada"{}
+
+\texorpdfstring{$<$}{<} Envia o número do pino para a fila de eventos GPIO a partir da ISR
+
+\texorpdfstring{$<$}{<} Força uma troca de contexto se uma tarefa de maior prioridade foi acordada\Hypertarget{main_8c_a78056c469c9710d2afff7ad0d49d953b}\index{main.c@{main.c}!http\_post\_request\_event\_handler@{http\_post\_request\_event\_handler}}
+\index{http\_post\_request\_event\_handler@{http\_post\_request\_event\_handler}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{http\_post\_request\_event\_handler()}{http\_post\_request\_event\_handler()}}
+{\footnotesize\ttfamily \label{main_8c_a78056c469c9710d2afff7ad0d49d953b} 
+esp\+\_\+err\+\_\+t http\+\_\+post\+\_\+request\+\_\+event\+\_\+handler (\begin{DoxyParamCaption}\item[{esp\+\_\+http\+\_\+client\+\_\+event\+\_\+t \texorpdfstring{$\ast$}{*}}]{evt}{}\end{DoxyParamCaption})}
+
+
+
+Handler de eventos HTTP. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em evt} & Estrutura com dados do evento HTTP \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Código de erro ESP 
+\end{DoxyReturn}
+\texorpdfstring{$<$}{<} Evento de recebimento de dados da resposta HTTP
+
+\texorpdfstring{$<$}{<} Realoca o buffer para acomodar os novos dados
+
+\texorpdfstring{$<$}{<} Libera o buffer antigo em caso de falha na realocação
+
+\texorpdfstring{$<$}{<} Retorna falha
+
+\texorpdfstring{$<$}{<} Copia os novos dados para o buffer
+
+\texorpdfstring{$<$}{<} Atualiza o tamanho da resposta
+
+\texorpdfstring{$<$}{<} Adiciona o terminador nulo
+
+\texorpdfstring{$<$}{<} Evento de finalização da requisição HTTP
+
+\texorpdfstring{$<$}{<} Libera o buffer de resposta
+
+\texorpdfstring{$<$}{<} Evento de desconexão HTTP
+
+\texorpdfstring{$<$}{<} Evento de erro HTTP
+
+\texorpdfstring{$<$}{<} Libera o buffer em caso de desconexão ou erro
+
+\texorpdfstring{$<$}{<} Retorna sucesso\Hypertarget{main_8c_a2ffbeae6c737f0ed50e4614eec56ef76}\index{main.c@{main.c}!init\_gpio@{init\_gpio}}
+\index{init\_gpio@{init\_gpio}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{init\_gpio()}{init\_gpio()}}
+{\footnotesize\ttfamily \label{main_8c_a2ffbeae6c737f0ed50e4614eec56ef76} 
+void init\+\_\+gpio (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Inicializa os GPIOs. 
+
+\texorpdfstring{$<$}{<} Máscara de bits para o pino do BFC
+
+\texorpdfstring{$<$}{<} Configura o pino como entrada
+
+\texorpdfstring{$<$}{<} Desabilita resistor de pull-\/up
+
+\texorpdfstring{$<$}{<} Habilita resistor de pull-\/down (garante estado baixo quando não ativado)
+
+\texorpdfstring{$<$}{<} Configura interrupção para borda de subida (quando o botão é pressionado e o pino vai de baixo para alto)
+
+\texorpdfstring{$<$}{<} Aplica a configuração ao pino do BFC
+
+\texorpdfstring{$<$}{<} Máscara de bits para o pino do LED vermelho
+
+\texorpdfstring{$<$}{<} Configura o pino como saída
+
+\texorpdfstring{$<$}{<} Desabilita pull-\/up
+
+\texorpdfstring{$<$}{<} Desabilita pull-\/down
+
+\texorpdfstring{$<$}{<} Desabilita interrupções
+
+\texorpdfstring{$<$}{<} Aplica a configuração ao pino do LED vermelho
+
+\texorpdfstring{$<$}{<} Desliga o LED vermelho inicialmente
+
+\texorpdfstring{$<$}{<} Máscara de bits para o pino do LED verde
+
+\texorpdfstring{$<$}{<} Configura o pino como saída
+
+\texorpdfstring{$<$}{<} Desabilita pull-\/up
+
+\texorpdfstring{$<$}{<} Desabilita pull-\/down
+
+\texorpdfstring{$<$}{<} Desabilita interrupções
+
+\texorpdfstring{$<$}{<} Aplica a configuração ao pino do LED verde
+
+\texorpdfstring{$<$}{<} Desliga o LED verde inicialmente
+
+\texorpdfstring{$<$}{<} Instala o serviço de interrupção GPIO
+
+\texorpdfstring{$<$}{<} Adiciona o handler de interrupção para o pino do BFC\Hypertarget{main_8c_a6afcde597267f66ebbfaecdf496439f4}\index{main.c@{main.c}!leds\_status\_task@{leds\_status\_task}}
+\index{leds\_status\_task@{leds\_status\_task}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{leds\_status\_task()}{leds\_status\_task()}}
+{\footnotesize\ttfamily \label{main_8c_a6afcde597267f66ebbfaecdf496439f4} 
+void leds\+\_\+status\+\_\+task (\begin{DoxyParamCaption}\item[{void \texorpdfstring{$\ast$}{*}}]{pv\+Parameter}{}\end{DoxyParamCaption})}
+
+
+
+Tarefa para gerenciamento dos LEDs e display LCD. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pv\+Parameter} & Argumento da tarefa (não utilizado) \\
+\hline
+\end{DoxyParams}
+\texorpdfstring{$<$}{<} Define o estado inicial da tarefa
+
+\texorpdfstring{$<$}{<} Variável para armazenar o estado recebido da fila
+
+\texorpdfstring{$<$}{<} Atualiza o LCD com o estado inicial
+
+\texorpdfstring{$<$}{<} Tenta receber um novo estado da fila com um timeout
+
+\texorpdfstring{$<$}{<} Atualiza o estado atual da tarefa
+
+\texorpdfstring{$<$}{<} Atualiza o display LCD com o novo estado
+
+\texorpdfstring{$<$}{<} Se está conectando ao Wi-\/\+Fi
+
+\texorpdfstring{$<$}{<} Liga o LED verde
+
+\texorpdfstring{$<$}{<} Atraso de 1 segundo
+
+\texorpdfstring{$<$}{<} Desliga o LED verde
+
+\texorpdfstring{$<$}{<} Atraso de 1 segundo (efeito de pisca-\/pisca)
+
+\texorpdfstring{$<$}{<} Se está aguardando o cartão
+
+\texorpdfstring{$<$}{<} Mantém o LED verde ligado
+
+\texorpdfstring{$<$}{<} Se está verificando o cartão
+
+\texorpdfstring{$<$}{<} Desliga o LED verde
+
+\texorpdfstring{$<$}{<} Atraso curto
+
+\texorpdfstring{$<$}{<} Liga o LED verde brevemente
+
+\texorpdfstring{$<$}{<} Retorna ao estado de aguardando cartão
+
+\texorpdfstring{$<$}{<} Se o acesso foi liberado
+
+\texorpdfstring{$<$}{<} Pisca o LED verde duas vezes
+
+\texorpdfstring{$<$}{<} Liga o LED vermelho (indicando acesso liberado)
+
+\texorpdfstring{$<$}{<} Atraso de 2 segundos
+
+\texorpdfstring{$<$}{<} Desliga o LED vermelho
+
+\texorpdfstring{$<$}{<} Retorna ao estado de aguardando cartão
+
+\texorpdfstring{$<$}{<} Envia o novo estado para a fila (para atualizar o LCD)
+
+\texorpdfstring{$<$}{<} Se o acesso foi negado
+
+\texorpdfstring{$<$}{<} Pisca o LED verde seis vezes
+
+\texorpdfstring{$<$}{<} Garante que o LED vermelho esteja desligado (ou o LED vermelho poderia ser usado para indicar negação)
+
+\texorpdfstring{$<$}{<} Retorna ao estado de aguardando cartão
+
+\texorpdfstring{$<$}{<} Envia o novo estado para a fila (para atualizar o LCD)
+
+\texorpdfstring{$<$}{<} Para qualquer outro estado
+
+\texorpdfstring{$<$}{<} Desliga o LED verde
+
+\texorpdfstring{$<$}{<} Desliga o LED vermelho\Hypertarget{main_8c_a872cef17d347f3daa32820b51e772780}\index{main.c@{main.c}!ler\_dados\_cartao@{ler\_dados\_cartao}}
+\index{ler\_dados\_cartao@{ler\_dados\_cartao}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{ler\_dados\_cartao()}{ler\_dados\_cartao()}}
+{\footnotesize\ttfamily \label{main_8c_a872cef17d347f3daa32820b51e772780} 
+void ler\+\_\+dados\+\_\+cartao (\begin{DoxyParamCaption}\item[{i2c\+\_\+master\+\_\+dev\+\_\+handle\+\_\+t}]{dev\+\_\+handle}{, }\item[{uint8\+\_\+t}]{endereco\+\_\+inicial}{, }\item[{uint8\+\_\+t \texorpdfstring{$\ast$}{*}}]{buffer}{, }\item[{size\+\_\+t}]{tamanho}{}\end{DoxyParamCaption})}
+
+
+
+Lê dados do cartão Smart\+Card. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em dev\+\_\+handle} & Handle do dispositivo I2C \\
+\hline
+{\em endereco\+\_\+inicial} & Endereço inicial de leitura na EEPROM do cartão \\
+\hline
+{\em buffer} & Buffer para armazenar os dados lidos \\
+\hline
+{\em tamanho} & Tamanho dos dados a serem lidos\\
+\hline
+{\em dev\+\_\+handle} & Handle do dispositivo I2C \\
+\hline
+{\em endereco\+\_\+inicial} & Endereço inicial de leitura \\
+\hline
+{\em buffer} & Buffer para armazenar os dados lidos \\
+\hline
+{\em tamanho} & Tamanho dos dados a serem lidos \\
+\hline
+\end{DoxyParams}
+\texorpdfstring{$<$}{<} Realiza a operação de transmissão (endereço) e recepção (dados) via I2C\Hypertarget{main_8c_a4f7a4d3a86c7aed99f8ba15bc9cb89c2}\index{main.c@{main.c}!nvs\_init@{nvs\_init}}
+\index{nvs\_init@{nvs\_init}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{nvs\_init()}{nvs\_init()}}
+{\footnotesize\ttfamily \label{main_8c_a4f7a4d3a86c7aed99f8ba15bc9cb89c2} 
+void nvs\+\_\+init (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Inicializa o NVS (Non-\/\+Volatile Storage) 
+
+\texorpdfstring{$<$}{<} Tenta inicializar o NVS
+
+\texorpdfstring{$<$}{<} Se não há páginas livres ou uma nova versão é encontrada
+
+\texorpdfstring{$<$}{<} Apaga a flash NVS
+
+\texorpdfstring{$<$}{<} Tenta inicializar novamente\Hypertarget{main_8c_a9ae3e43ccaa4464b7d4ba233cf99359a}\index{main.c@{main.c}!sntp\_callback\_sync\_time@{sntp\_callback\_sync\_time}}
+\index{sntp\_callback\_sync\_time@{sntp\_callback\_sync\_time}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{sntp\_callback\_sync\_time()}{sntp\_callback\_sync\_time()}}
+{\footnotesize\ttfamily \label{main_8c_a9ae3e43ccaa4464b7d4ba233cf99359a} 
+void sntp\+\_\+callback\+\_\+sync\+\_\+time (\begin{DoxyParamCaption}\item[{struct timeval \texorpdfstring{$\ast$}{*}}]{tv}{}\end{DoxyParamCaption})}
+
+
+
+Callback de sincronização de tempo SNTP. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em tv} & Estrutura com dados de tempo (struct timeval)\\
+\hline
+{\em tv} & Estrutura com dados de tempo \\
+\hline
+\end{DoxyParams}
+\texorpdfstring{$<$}{<} Define o fuso horário para GMT-\/3 (Brasília)
+
+\texorpdfstring{$<$}{<} Atualiza as informações de fuso horário
+
+\texorpdfstring{$<$}{<} Obtém o tempo atual (após a sincronização)
+
+\texorpdfstring{$<$}{<} Converte o tempo para a estrutura tm (tempo local)
+
+\texorpdfstring{$<$}{<} Seta a flag para indicar que o tempo foi sincronizado\Hypertarget{main_8c_a6a97e608f0d3b7a774767866989847f8}\index{main.c@{main.c}!sntp\_sync\_task@{sntp\_sync\_task}}
+\index{sntp\_sync\_task@{sntp\_sync\_task}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{sntp\_sync\_task()}{sntp\_sync\_task()}}
+{\footnotesize\ttfamily \label{main_8c_a6a97e608f0d3b7a774767866989847f8} 
+void sntp\+\_\+sync\+\_\+task (\begin{DoxyParamCaption}\item[{void \texorpdfstring{$\ast$}{*}}]{pv\+Parameter}{}\end{DoxyParamCaption})}
+
+
+
+Tarefa para sincronização SNTP. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pv\+Parameter} & Argumento da tarefa (não utilizado) \\
+\hline
+\end{DoxyParams}
+\texorpdfstring{$<$}{<} Aguarda indefinidamente até que o Wi-\/\+Fi esteja conectado para iniciar a sincronização SNTP
+
+\texorpdfstring{$<$}{<} Define o modo de operação SNTP como "{}polling"{}
+
+\texorpdfstring{$<$}{<} Define o servidor SNTP (servidor de tempo do Google)
+
+\texorpdfstring{$<$}{<} Registra a função de callback para notificação de sincronização de tempo
+
+\texorpdfstring{$<$}{<} Define o intervalo de sincronização para 6 horas (em milissegundos)
+
+\texorpdfstring{$<$}{<} Inicializa o cliente SNTP
+
+\texorpdfstring{$<$}{<} Deleta a própria tarefa após a inicialização do SNTP, pois a sincronização ocorrerá em segundo plano e através do callback\Hypertarget{main_8c_a697dbb6c25910ad04e764061267a0e8a}\index{main.c@{main.c}!update\_lcd\_display@{update\_lcd\_display}}
+\index{update\_lcd\_display@{update\_lcd\_display}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{update\_lcd\_display()}{update\_lcd\_display()}}
+{\footnotesize\ttfamily \label{main_8c_a697dbb6c25910ad04e764061267a0e8a} 
+void update\+\_\+lcd\+\_\+display (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{main_8c_aeaac97ef8a153a4e1abc636f535656eb}{system\+\_\+state\+\_\+t}}}]{state}{}\end{DoxyParamCaption})}
+
+
+
+Atualiza o display LCD conforme o estado do sistema. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em state} & Estado do sistema a ser exibido \\
+\hline
+\end{DoxyParams}
+\texorpdfstring{$<$}{<} Limpa o conteúdo do display LCD
+
+\texorpdfstring{$<$}{<} Posiciona o cursor na primeira coluna, primeira linha
+
+\texorpdfstring{$<$}{<} Caso o estado seja "{}\+Conectando ao Wi-\/\+Fi"{}
+
+\texorpdfstring{$<$}{<} Escreve "{}\+Conectando"{}
+
+\texorpdfstring{$<$}{<} Posiciona o cursor na primeira coluna, segunda linha
+
+\texorpdfstring{$<$}{<} Escreve "{}ao Wi-\/\+Fi..."{}
+
+\texorpdfstring{$<$}{<} Caso o estado seja "{}\+Aguardando Cartão"{}
+
+\texorpdfstring{$<$}{<} Escreve "{}\+Aguardando"{}
+
+\texorpdfstring{$<$}{<} Posiciona o cursor
+
+\texorpdfstring{$<$}{<} Escreve "{}\+Cartao..."{}
+
+\texorpdfstring{$<$}{<} Caso o estado seja "{}\+Verificando Cartão"{}
+
+\texorpdfstring{$<$}{<} Escreve "{}\+Verificando"{}
+
+\texorpdfstring{$<$}{<} Posiciona o cursor
+
+\texorpdfstring{$<$}{<} Escreve "{}\+Cartao..."{}
+
+\texorpdfstring{$<$}{<} Caso o estado seja "{}\+Acesso Liberado"{}
+
+\texorpdfstring{$<$}{<} Escreve "{}\+Acesso"{}
+
+\texorpdfstring{$<$}{<} Posiciona o cursor
+
+\texorpdfstring{$<$}{<} Escreve "{}\+Liberado!"{}
+
+\texorpdfstring{$<$}{<} Caso o estado seja "{}\+Acesso Negado"{}
+
+\texorpdfstring{$<$}{<} Escreve "{}\+Acesso"{}
+
+\texorpdfstring{$<$}{<} Posiciona o cursor
+
+\texorpdfstring{$<$}{<} Escreve "{}\+Negado!"{}
+
+\texorpdfstring{$<$}{<} Para qualquer outro estado não previsto
+
+\texorpdfstring{$<$}{<} Exibe uma mensagem de erro\Hypertarget{main_8c_afd09153a6048e5ac7c4bf1655c8c42b0}\index{main.c@{main.c}!verify\_card\_http\_post@{verify\_card\_http\_post}}
+\index{verify\_card\_http\_post@{verify\_card\_http\_post}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{verify\_card\_http\_post()}{verify\_card\_http\_post()}}
+{\footnotesize\ttfamily \label{main_8c_afd09153a6048e5ac7c4bf1655c8c42b0} 
+void verify\+\_\+card\+\_\+http\+\_\+post (\begin{DoxyParamCaption}\item[{char \texorpdfstring{$\ast$}{*}}]{card\+\_\+id\+\_\+str}{}\end{DoxyParamCaption})}
+
+
+
+Realiza requisição HTTP POST para verificar o cartão. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em card\+\_\+id\+\_\+str} & ID do cartão a ser verificado \\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+Esta função parece ser uma duplicação do trecho de código dentro de {\ttfamily cartao\+\_\+task} e pode ser refatorada. 
+\end{DoxyNote}
+\texorpdfstring{$<$}{<} Formata os dados JSON para a requisição POST
+
+\texorpdfstring{$<$}{<} URL do servidor
+
+\texorpdfstring{$<$}{<} Método HTTP (POST)
+
+\texorpdfstring{$<$}{<} Handler de eventos HTTP para processar a resposta
+
+\texorpdfstring{$<$}{<} Tempo limite da requisição em milissegundos
+
+\texorpdfstring{$<$}{<} User-\/\+Agent para a requisição
+
+\texorpdfstring{$<$}{<} Inicializa o cliente HTTP
+
+\texorpdfstring{$<$}{<} Define o cabeçalho Content-\/\+Type como JSON
+
+\texorpdfstring{$<$}{<} Define os dados a serem enviados no corpo da requisição POST
+
+\texorpdfstring{$<$}{<} Realiza a requisição HTTP
+
+\texorpdfstring{$<$}{<} Obtém o código de status HTTP da resposta
+
+\texorpdfstring{$<$}{<} Define o estado como "{}\+Acesso Liberado"{}
+
+\texorpdfstring{$<$}{<} Envia o estado para a fila
+
+\texorpdfstring{$<$}{<} Define o estado como "{}\+Acesso Negado"{}
+
+\texorpdfstring{$<$}{<} Envia o estado para a fila
+
+\texorpdfstring{$<$}{<} Define o estado como "{}\+Acesso Negado"{} (por erro de comunicação)
+
+\texorpdfstring{$<$}{<} Envia o estado para a fila
+
+\texorpdfstring{$<$}{<} Limpa os recursos do cliente HTTP\Hypertarget{main_8c_af67410a15ecc24ecef0e5abce0c5b30c}\index{main.c@{main.c}!wifi\_init@{wifi\_init}}
+\index{wifi\_init@{wifi\_init}!main.c@{main.c}}
+\doxysubsubsection{\texorpdfstring{wifi\_init()}{wifi\_init()}}
+{\footnotesize\ttfamily \label{main_8c_af67410a15ecc24ecef0e5abce0c5b30c} 
+void wifi\+\_\+init (\begin{DoxyParamCaption}{}{}\end{DoxyParamCaption})}
+
+
+
+Inicializa a conexão Wi-\/\+Fi. 
+
+\texorpdfstring{$<$}{<} Obtém a configuração padrão de inicialização do Wi-\/\+Fi
+
+\texorpdfstring{$<$}{<} Inicializa o subsistema Wi-\/\+Fi com as configurações
+
+\texorpdfstring{$<$}{<} Define o modo de operação do Wi-\/\+Fi como estação (STA)
+
+\texorpdfstring{$<$}{<} Define o SSID da rede Wi-\/\+Fi
+
+\texorpdfstring{$<$}{<} Define a senha da rede Wi-\/\+Fi
+
+\texorpdfstring{$<$}{<} Aplica as configurações da rede Wi-\/\+Fi
+
+\texorpdfstring{$<$}{<} Inicia o Wi-\/\+Fi
