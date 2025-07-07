@@ -32,7 +32,7 @@ The project utilizes the **ESP32-C3 microcontroller**, an EEPROM SmartCard, a Sm
 
 Here's the Fritzing diagram showing the connections for the SmartCard and LCD with the ESP32-C3:
 
-![SmartCard and LCD with ESP32-C3 Connections](https://github.com/rebeccaquintino/acesss-control/blob/main/doc/connections.jpg)
+![SmartCard and LCD with ESP32-C3 Connections](https://github.com/rebeccaquintino/acesss-control/blob/main/doc/connections.jpeg)
 
 
 ## Development
