@@ -1,7 +1,6 @@
-
 # Smart Card Access Control System
 
-This repository contains the firmware for a Smart Card Access Control System, developed as "Projeto 2" for the UFSC - EEL7030 Microprocessadores course. 
+This repository contains the firmware for a Smart Card Access Control System, developed as "Projeto 2" for the UFSC - EEL7030 Microprocessadores course.
 
 ## 🚀 Check out the Simulator!
 
@@ -27,6 +26,13 @@ When a guest performs a check-in, a **16-character random ID** is generated and 
 ## Hardware Setup
 
 The project utilizes the **ESP32-C3 microcontroller**, an EEPROM SmartCard, a SmartCard reader, an LCD display, a red LED, a green LED, and a limit switch button ($\mathbf{B_{FC}}$) to detect card insertion. A circuit diagram illustrating the proposed hardware for testing is included in the project documentation.
+
+
+### Connections Diagram
+
+Here's the Fritzing diagram showing the connections for the SmartCard and LCD with the ESP32-C3:
+
+![SmartCard and LCD with ESP32-C3 Connections](https://github.com/rebeccaquintino/acesss-control/blob/main/doc/connections.jpg)
 
 
 ## Development
